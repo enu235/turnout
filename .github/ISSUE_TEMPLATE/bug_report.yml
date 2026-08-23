@@ -1,0 +1,35 @@
+name: Bug report
+description: Something behaves differently than documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations: {required: true}
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of `turnout check`
+      description: >
+        This shows which provider CLIs are reachable and which targets are
+        enabled. Redact anything you would rather not share.
+      render: text
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`turnout --version`, or the commit you are on"
+    validations: {required: true}
+  - type: textarea
+    id: decision
+    attributes:
+      label: The routing decision, if relevant
+      description: >
+        For routing bugs, paste the Decision from the inspector panel, or the
+        output of `curl -sS -X POST localhost:8700/api/route -H 'Content-Type:
+        application/json' -d '{"prompt":"..."}'`. That endpoint does not call a
+        model, so it costs nothing.
+      render: json

@@ -1,0 +1,30 @@
+Turnout
+Copyright 2026 Allan
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
+
+Turnout is an independent project. It is NOT affiliated with, endorsed by, or
+sponsored by NVIDIA Corporation, Anthropic, GitHub, Microsoft, OpenAI, xAI, or
+Google.
+
+NVIDIA NeMo Switchyard
+    https://github.com/NVIDIA-NeMo/Switchyard
+    Apache License 2.0. Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
+    Used, optionally, as one of several interchangeable routing backends.
+    Turnout speaks to it over HTTP; no Switchyard source is vendored here.
+    Turnout runs fully without it, with four other routers.
+
+Provider command-line tools
+    Turnout invokes `claude` (Anthropic Claude Code), `copilot` (GitHub Copilot
+    CLI), and `codex` (OpenAI Codex CLI) as local subprocesses. These are not
+    redistributed with Turnout, and Turnout neither reads, stores, nor transmits
+    their credentials -- each tool authenticates itself under your own account.
+
+    Your use of those tools through Turnout remains subject to each provider's
+    own terms of service and acceptable use policy. Automating a subscription
+    tool may be treated differently from ordinary interactive use; that is
+    between you and the provider.

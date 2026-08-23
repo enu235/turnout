@@ -1,0 +1,243 @@
+# Turnout configuration.
+#
+# Everything Turnout knows about the outside world lives here. Adding a
+# model is an edit to this file, never a code change.
+#
+# Tiers are 1-5 *estimates* used to seed routing before there is real data:
+#   cost_tier    1 = cheapest        5 = most expensive
+#   speed_tier   1 = fastest         5 = slowest
+#   quality_tier 1 = weakest         5 = strongest
+# Once the executions table has history, measured latency and success rate
+# start overriding these guesses in the heuristic router.
+
+[turnout]
+host           = "127.0.0.1"
+port           = 8700
+db_path        = "data/turnout.db"
+default_router = "heuristic"
+default_target = "claude-haiku"
+# CLI providers read AGENTS.md / CLAUDE.md from their working directory, which
+# would silently alter every prompt. Point them somewhere neutral.
+cli_workdir    = "~"
+
+[switchyard]
+enabled     = true
+url         = "http://127.0.0.1:4000"
+# A bare name is looked up on $PATH. Give a full path if you built Switchyard
+# somewhere else. Switchyard is optional: without it you lose the two
+# switchyard routers and keep the other four.
+binary      = "switchyard-server"
+config_path = "config/switchyard.generated.toml"
+port        = 4000
+routing_log = "data/switchyard-routing.jsonl"
+autostart   = false
+
+# One Turnout router per Switchyard route. Switchyard's own decision overhead is
+# ~20ms; the classifier route adds a real model call on top of that (measured at
+# roughly 20s with these CLI providers, once per new session), which is the price
+# of letting an LLM judge the task. The random route is instant and exists as an
+# exploration policy.
+[switchyard.routes]
+switchyard        = "switchyard/classifier"
+switchyard-random = "switchyard/random"
+
+# --------------------------------------------------------------------------
+# Targets
+# --------------------------------------------------------------------------
+
+# --- Claude Code CLI: the only provider here that reports real USD cost. -----
+
+[[targets]]
+id = "claude-haiku"
+adapter = "claude_cli"
+model = "haiku"
+label = "Claude Haiku 4.5"
+cost_tier = 1
+speed_tier = 1
+quality_tier = 2
+tags = ["chat", "fast"]
+notes = "Cheap and quick. The right answer for most short prompts."
+
+[[targets]]
+id = "claude-sonnet"
+adapter = "claude_cli"
+model = "sonnet"
+label = "Claude Sonnet 5"
+cost_tier = 3
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+notes = "The general-purpose workhorse."
+
+[[targets]]
+id = "claude-opus"
+adapter = "claude_cli"
+model = "opus"
+label = "Claude Opus 5"
+cost_tier = 5
+speed_tier = 4
+quality_tier = 5
+tags = ["code", "reasoning"]
+notes = "Reserved for genuinely hard work; expensive per token."
+
+# --- GitHub Copilot CLI ------------------------------------------------------
+#
+# One subscription, four vendors. Every model below was verified to actually
+# answer on this account -- the documented model list is wider than what is
+# enabled, so unverified names were left out rather than guessed at.
+# Costs are Copilot "AI credits" per short call, measured, not estimated.
+
+[[targets]]
+id = "copilot-auto"
+adapter = "copilot_cli"
+model = "auto"
+label = "Copilot (auto)"
+cost_tier = 2
+speed_tier = 2
+quality_tier = 3
+tags = ["chat", "code", "baseline"]
+notes = "Copilot's own opaque picker; resolved to Haiku 4.5 when measured. Kept as the baseline this project exists to beat."
+
+[[targets]]
+id = "copilot-sonnet"
+adapter = "copilot_cli"
+model = "claude-sonnet-5"
+label = "Sonnet 5 (Copilot)"
+cost_tier = 3
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+notes = "~0.92 credits on a short call."
+
+[[targets]]
+id = "copilot-opus"
+adapter = "copilot_cli"
+model = "claude-opus-5"
+label = "Opus 5 (Copilot)"
+cost_tier = 5
+speed_tier = 4
+quality_tier = 5
+tags = ["code", "reasoning"]
+notes = "~2.32 credits on a short call -- the most expensive target here."
+
+[[targets]]
+id = "copilot-gpt-sol"
+adapter = "copilot_cli"
+model = "gpt-5.6-sol"
+label = "GPT-5.6 Sol (Copilot)"
+cost_tier = 3
+speed_tier = 3
+quality_tier = 4
+tags = ["code", "reasoning"]
+notes = "~0.96 credits."
+
+[[targets]]
+id = "copilot-gpt-54"
+adapter = "copilot_cli"
+model = "gpt-5.4"
+label = "GPT-5.4 (Copilot)"
+cost_tier = 3
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+notes = "~1.00 credits."
+
+[[targets]]
+id = "copilot-grok"
+adapter = "copilot_cli"
+model = "grok-4.5"
+label = "Grok 4.5 (Copilot)"
+cost_tier = 3
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+notes = "xAI without an xAI key -- Copilot fronts it."
+
+[[targets]]
+id = "copilot-gemini"
+adapter = "copilot_cli"
+model = "gemini-3.7-flash"
+label = "Gemini 3.7 Flash (Copilot)"
+cost_tier = 1
+speed_tier = 1
+quality_tier = 3
+tags = ["chat", "fast"]
+notes = "The cheap, fast option on the Copilot side."
+
+# --- OpenAI Codex CLI --------------------------------------------------------
+
+[[targets]]
+id = "codex-default"
+adapter = "codex_cli"
+model = "default"
+label = "Codex (gpt-5.5)"
+cost_tier = 3
+speed_tier = 3
+quality_tier = 4
+tags = ["code", "reasoning", "buffered"]
+notes = "OpenAI via the Codex CLI and its ChatGPT subscription auth. Codex returns whole messages, not token deltas, so replies arrive in one go rather than streaming."
+
+[[targets]]
+id = "codex-sol"
+adapter = "codex_cli"
+model = "gpt-5.6-sol"
+label = "Codex GPT-5.6 Sol"
+cost_tier = 4
+speed_tier = 4
+quality_tier = 5
+tags = ["code", "reasoning", "buffered"]
+notes = "The strongest Codex option; slower, and not incremental."
+
+[[targets]]
+id = "codex-terra"
+adapter = "codex_cli"
+model = "gpt-5.6-terra"
+label = "Codex GPT-5.6 Terra"
+cost_tier = 4
+speed_tier = 3
+quality_tier = 4
+tags = ["code", "buffered"]
+
+# --------------------------------------------------------------------------
+# OpenAI-compatible HTTP providers
+#
+# Each entry registers an adapter under its `name`, which targets then
+# reference. Keys are read from the environment at call time, so Turnout
+# starts fine without them and picks them up when they appear.
+# --------------------------------------------------------------------------
+
+[[http_providers]]
+name        = "xai"
+base_url    = "https://api.x.ai/v1"
+api_key_env = "XAI_API_KEY"
+
+[[http_providers]]
+name     = "ollama"
+base_url = "http://127.0.0.1:11434/v1"
+
+# Enable these once the corresponding provider is reachable.
+
+[[targets]]
+id = "grok-4"
+adapter = "xai"
+model = "grok-4"
+label = "Grok 4 (xAI direct)"
+cost_tier = 3
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+enabled = false
+notes = "Needs XAI_API_KEY. Copilot also exposes grok-4.5 without a key."
+
+[[targets]]
+id = "ollama-local"
+adapter = "ollama"
+model = "llama3.2"
+label = "Ollama (local)"
+cost_tier = 1
+speed_tier = 2
+quality_tier = 2
+tags = ["chat", "local"]
+local = true
+enabled = false
+notes = "Fully offline. Enable after `ollama serve` and pulling a model."

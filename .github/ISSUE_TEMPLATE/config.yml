@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: NVIDIA NeMo Switchyard
+    url: https://github.com/NVIDIA-NeMo/Switchyard
+    about: >
+      Turnout uses Switchyard as one optional router backend. Bugs in Switchyard
+      itself belong there, not here.
