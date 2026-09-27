@@ -119,6 +119,23 @@ Two of the six routers (Switchyard, Switchyard-random) delegate the decision to
 Turnout runs these as local subprocesses. It never reads credential files or the system
 keychain — each CLI authenticates itself.
 
+**On Omarchy (Arch Linux)**
+
+Use Omarchy's package helper for base dependencies, then install Turnout as a `uv` tool:
+
+```bash
+omarchy pkg add python uv git
+uv tool install git+https://github.com/enu235/turnout
+
+mkdir -p ~/turnout && cd ~/turnout
+turnout init
+turnout check
+turnout serve
+```
+
+If you cloned this repository, `./scripts/install-omarchy.sh [workspace-dir]` runs the same
+bootstrap flow and probes adapters at the end.
+
 **Install it as a tool** — nothing to clone:
 
 ```bash
