@@ -80,6 +80,13 @@ async def test_probe_succeeds_against_a_live_endpoint(fake_server):
     assert ok is True
 
 
+def test_authorization_header_uses_bearer_prefix():
+    a = OpenAiHttpAdapter(base_url="https://api.example.invalid/v1")
+    headers = a._headers("test-key")
+    assert headers["Authorization"].startswith("Bearer ")
+    assert headers["Authorization"].endswith("test-key")
+
+
 async def test_streams_text_and_reports_usage(fake_server):
     text, usage, errors = await drain(OpenAiHttpAdapter(base_url=fake_server), exec_req())
     assert not errors

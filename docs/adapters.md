@@ -198,6 +198,10 @@ Claude is the **only provider here** that reports real USD cost. The other CLI a
 **Binary:** `copilot`  
 **Command:** `copilot -p <prompt> --output-format json ...`
 
+Copilot's native model picker does **not** expose NVIDIA models directly. NVIDIA routing in
+Turnout is a separate path: run Copilot in BYOK/local-provider mode against Turnout, then let
+Turnout route those OpenAI-compatible requests to a configured NVIDIA HTTP target.
+
 ### Key flags
 
 The unmodified Copilot CLI in interactive mode is a *coding agent*: it loads the GitHub MCP server, every personal/project skill, and a large built-in toolset (bash, file editing, etc.), folding their schemas into the system prompt. On a typical account, that alone adds ~22,000 prompt tokens before the model sees the actual request.
@@ -482,6 +486,20 @@ The real API error is wrapped in escaped JSON strings. The adapter unwraps it an
 
 This adapter is a generic escape hatch for any OpenAI-compatible endpoint: xAI/Grok, NVIDIA NIM,
 Ollama, vLLM, LM Studio, OpenRouter, etc. One adapter class parameterized by `base_url` covers them all.
+
+That includes NVIDIA NIM endpoints. No NIM-specific adapter code is required. In config,
+register one HTTP provider:
+
+```toml
+[[http_providers]]
+name        = "nvidia"
+base_url    = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+```
+
+Then attach one or more targets to `adapter = "nvidia"` (typically `enabled = false` until
+you are ready to opt in). This is provider-level routing in Turnout, independent from Copilot's
+native model picker.
 
 ### Initialization
 

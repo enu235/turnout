@@ -86,6 +86,12 @@ notes = "Reserved for genuinely hard work; expensive per token."
 # answer on this account -- the documented model list is wider than what is
 # enabled, so unverified names were left out rather than guessed at.
 # Costs are Copilot "AI credits" per short call, measured, not estimated.
+# Optional role tags for Copilot-first routing recipes:
+#   daily-driver  -> default coding/chat work
+#   orchestrator  -> heavier coordination/reasoning turns
+#   subagent      -> cheap, fast delegated calls
+# These tags are descriptive only; routing is unchanged unless a request
+# explicitly constrains the eligible targets.
 
 [[targets]]
 id = "copilot-auto"
@@ -106,7 +112,7 @@ label = "Sonnet 5 (Copilot)"
 cost_tier = 3
 speed_tier = 2
 quality_tier = 4
-tags = ["chat", "code"]
+tags = ["chat", "code", "daily-driver"]
 notes = "~0.92 credits on a short call."
 
 [[targets]]
@@ -117,7 +123,7 @@ label = "Opus 5 (Copilot)"
 cost_tier = 5
 speed_tier = 4
 quality_tier = 5
-tags = ["code", "reasoning"]
+tags = ["code", "reasoning", "orchestrator"]
 notes = "~2.32 credits on a short call -- the most expensive target here."
 
 [[targets]]
@@ -128,7 +134,7 @@ label = "GPT-5.6 Sol (Copilot)"
 cost_tier = 3
 speed_tier = 3
 quality_tier = 4
-tags = ["code", "reasoning"]
+tags = ["code", "reasoning", "orchestrator"]
 notes = "~0.96 credits."
 
 [[targets]]
@@ -139,7 +145,7 @@ label = "GPT-5.4 (Copilot)"
 cost_tier = 3
 speed_tier = 2
 quality_tier = 4
-tags = ["chat", "code"]
+tags = ["chat", "code", "daily-driver"]
 notes = "~1.00 credits."
 
 [[targets]]
@@ -150,7 +156,7 @@ label = "Grok 4.5 (Copilot)"
 cost_tier = 3
 speed_tier = 2
 quality_tier = 4
-tags = ["chat", "code"]
+tags = ["chat", "code", "daily-driver"]
 notes = "xAI without an xAI key -- Copilot fronts it."
 
 [[targets]]
@@ -161,8 +167,16 @@ label = "Gemini 3.7 Flash (Copilot)"
 cost_tier = 1
 speed_tier = 1
 quality_tier = 3
-tags = ["chat", "fast"]
+tags = ["chat", "fast", "subagent"]
 notes = "The cheap, fast option on the Copilot side."
+
+# Copilot role recipes (opt-in via request constraints):
+#   daily-driver -> priority = "balanced",
+#                   allow_targets = ["copilot-sonnet", "copilot-gpt-54", "copilot-grok"]
+#   orchestrator -> priority = "quality",
+#                   allow_targets = ["copilot-opus", "copilot-gpt-sol"]
+#   subagent     -> priority = "cheap",
+#                   allow_targets = ["copilot-gemini", "copilot-auto"]
 
 # --- OpenAI Codex CLI --------------------------------------------------------
 
@@ -244,7 +258,7 @@ speed_tier = 2
 quality_tier = 4
 tags = ["chat", "code"]
 enabled = false
-notes = "Needs NVIDIA_API_KEY and a currently available NVIDIA model id."
+notes = "Needs NVIDIA_API_KEY and a currently available NVIDIA model id. Direct NIM via OpenAI-compatible HTTP; Copilot has no native NVIDIA model picker."
 
 [[targets]]
 id = "ollama-local"

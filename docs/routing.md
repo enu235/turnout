@@ -42,6 +42,37 @@ The `Constraints` object holds what the caller cares about. A router must respec
 
 Hard constraints are applied once by `TargetCatalog.eligible(constraints)`, which filters the target list before any router is consulted. This ensures all routers work from the same candidate set and no policy can accidentally violate a hard constraint.
 
+## Optional role-oriented recipes (Copilot-first)
+
+Turnout does not have a special "role preset" router, and shipped defaults stay unchanged. The
+daily-driver/orchestrator/subagent split is an **opt-in request policy** built with existing
+constraints:
+
+| Role | Suggested constraints |
+|---|---|
+| `daily-driver` | `priority="balanced"`, `allow_targets=["copilot-sonnet","copilot-gpt-54","copilot-grok"]` |
+| `orchestrator` | `priority="quality"`, `allow_targets=["copilot-opus","copilot-gpt-sol"]` |
+| `subagent` | `priority="cheap"`, `allow_targets=["copilot-gemini","copilot-auto"]` |
+| `auto` | No extra constraints; let the active router choose |
+
+Example (subagent profile):
+
+```json
+{
+  "model": "auto",
+  "messages": [{"role": "user", "content": "summarize this log"}],
+  "constraints": {
+    "priority": "cheap",
+    "allow_targets": ["copilot-gemini", "copilot-auto"]
+  }
+}
+```
+
+`allow_targets` is a hard boundary; `priority` is a soft preference inside that boundary.
+For orchestration-heavy workloads, validate real context sizes before preferring a specific
+long-context model: Turnout currently has no automatic context-window pricing threshold or
+`reasoning_effort` knob in routing.
+
 ## The Manual Router: The Control Condition
 
 The manual router exists to be the control condition in A/B comparisons. It always selects a configured default target, regardless of the prompt, the request history, or any other signal.
