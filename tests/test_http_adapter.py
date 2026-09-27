@@ -67,6 +67,14 @@ async def test_probe_reports_missing_key_without_raising():
     assert ok is False and "DEFINITELY_NOT_SET_KEY" in detail
 
 
+def test_auth_header_uses_bearer_token():
+    token = "token-abc"
+    a = OpenAiHttpAdapter(base_url="https://api.example.invalid/v1", api_key=token)
+    header = a._headers(token)["Authorization"]  # noqa: SLF001
+    assert header.startswith("Bearer ")
+    assert header.endswith(token)
+
+
 async def test_probe_succeeds_against_a_live_endpoint(fake_server):
     ok, _ = await OpenAiHttpAdapter(base_url=fake_server).probe()
     assert ok is True

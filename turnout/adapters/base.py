@@ -55,13 +55,31 @@ class CliAdapter:
     binary: str = ""
     probe_args: list[str] = ["--version"]
 
-    def __init__(self, workdir: str | None = None, extra_env: dict[str, str] | None = None):
+    def __init__(
+        self,
+        workdir: str | None = None,
+        extra_env: dict[str, str] | None = None,
+        unset_env: set[str] | None = None,
+    ):
         # A neutral cwd matters: these CLIs read AGENTS.md/CLAUDE.md from the
         # working directory, which would silently change the prompt.
         self.workdir = os.path.expanduser(workdir or "~")
         self.extra_env = extra_env or {}
+        self.unset_env = unset_env or set()
         if not os.path.isdir(self.workdir):
             self.workdir = os.path.expanduser("~")
+
+    def runtime_env(self) -> dict[str, str]:
+        """Environment for subprocess calls, with explicit key removals.
+
+        Most adapters inherit the current process environment untouched.
+        Providers that are sensitive to caller-scoped routing env (notably
+        Copilot BYOK variables) can strip them here to avoid self-recursion.
+        """
+        env = {**os.environ, **self.extra_env}
+        for k in self.unset_env:
+            env.pop(k, None)
+        return env
 
     # -- hooks -------------------------------------------------------------
 
@@ -105,7 +123,7 @@ class CliAdapter:
     async def stream(self, req: ExecRequest) -> AsyncIterator[Chunk]:
         argv = self.build_argv(req)
         stdin_data = self.stdin_payload(req)
-        env = {**os.environ, **self.extra_env}
+        env = self.runtime_env()
         state: dict[str, Any] = {"usage": Usage(), "stderr": []}
 
         try:

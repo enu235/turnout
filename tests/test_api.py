@@ -101,6 +101,23 @@ def test_openai_endpoint_non_streaming(client):
     assert r["turnout"]["router"] == "heuristic"
 
 
+def test_openai_auto_quality_profile_sets_priority(client):
+    r = client.post("/v1/chat/completions", json={
+        "model": "auto-quality",
+        "messages": [{"role": "user", "content": "summarise this"}],
+    }).json()
+    assert r["choices"][0]["message"]["content"] == "hello from strong"
+
+
+def test_openai_auto_copilot_profile_requires_copilot_targets(client):
+    r = client.post("/v1/chat/completions", json={
+        "model": "auto-copilot",
+        "messages": [{"role": "user", "content": "hi"}],
+    })
+    assert r.status_code == 400
+    assert "copilot_cli" in r.json()["detail"]
+
+
 def test_openai_endpoint_streaming_ends_with_done(client):
     with client.stream("POST", "/v1/chat/completions", json={
             "model": "mid", "stream": True,
@@ -120,7 +137,8 @@ def test_openai_endpoint_rejects_unknown_model(client):
 
 def test_models_endpoint_advertises_auto_plus_targets(client):
     ids = {m["id"] for m in client.get("/v1/models").json()["data"]}
-    assert "auto" in ids and "cheap" in ids
+    assert "auto" in ids and "auto-fast" in ids and "cheap" in ids
+    assert "auto-copilot" not in ids
     assert "offline" not in ids  # disabled in config
 
 

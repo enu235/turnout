@@ -13,8 +13,9 @@ That is the whole pitch: the same job GitHub Copilot's `auto` picker does silent
 can see it, change it, and log it.
 
 Thirteen live targets across four vendors — Anthropic, OpenAI, xAI, and Google — are reachable
-with **zero API keys**, because every one of them is fronted by a local CLI (`claude`,
-`copilot`, `codex`) that is already logged in. Everything lands in SQLite: the prompt, the
+with **zero API keys**, because every live default target is fronted by a local CLI (`claude`,
+`copilot`, `codex`) that is already logged in. Optional OpenAI-compatible endpoints (xAI,
+Ollama, NVIDIA NIM) can be enabled separately. Everything lands in SQLite: the prompt, the
 feature vector the router saw, the candidate scores, latency, cost, outcomes — a dataset built
 for training a better router later, not just a chat log.
 
@@ -156,6 +157,7 @@ adapters
   OK  claude_cli     2.1.240 (Claude Code)
   OK  codex_cli      codex-cli 0.149.0
   OK  copilot_cli    GitHub Copilot CLI 1.0.81-7.
+  --  nvidia         NVIDIA_API_KEY not set
   --  ollama         connection failed: All connection attempts failed
   --  xai            XAI_API_KEY not set
 
@@ -174,6 +176,7 @@ targets
   OK codex-sol        codex_cli    gpt-5.6-sol        q5 c4 s4
   OK codex-terra      codex_cli    gpt-5.6-terra      q4 c4 s3
   -- grok-4           xai          grok-4             q4 c3 s2  (disabled in config)
+  -- nvidia-llama-31-70b nvidia    meta/llama-3.1-70b-instruct q4 c2 s2  (disabled in config)
   -- ollama-local     ollama       llama3.2           q2 c1 s2  (disabled in config)
 ```
 
@@ -293,8 +296,8 @@ curl -s -X POST http://127.0.0.1:8700/v1/chat/completions \
   -d '{"model": "auto", "messages": [{"role": "user", "content": "..."}]}'
 ```
 
-Use `"model": "auto"` to invoke the active router, or name any target id (e.g.
-`"claude-opus"`) to pin it.
+Use `"model": "auto"` to invoke the active router over the full catalog, or name any target id
+(e.g. `"claude-opus"`) to pin it.
 
 ## Optional: bring your own router to Copilot CLI
 
@@ -316,14 +319,18 @@ Point GitHub Copilot CLI at Turnout:
   COPILOT_PROVIDER_BASE_URL=http://127.0.0.1:8700/v1
   COPILOT_PROVIDER_TYPE=openai
   COPILOT_PROVIDER_WIRE_API=completions
-  COPILOT_MODEL=auto
+  COPILOT_MODEL=auto-copilot
 
   $ eval "$(turnout byok --export)" && copilot
 ```
 
 Run that last line and `copilot` now talks to Turnout. Swap routers or change priorities on
-Turnout and your next call routes differently — all of it recorded in the database. Pass
-`--model` to pin one target instead of routing: `turnout byok --model claude-opus`.
+Turnout and your next call routes differently — all of it recorded in the database.
+`auto-copilot` keeps the route inside Copilot-backed targets; `auto` uses the full Turnout
+catalog. Other built-in profiles (`auto-fast`, `auto-cheap`, `auto-quality`,
+`auto-copilot-fast`, `auto-copilot-cheap`, `auto-copilot-quality`) map to routing constraints
+without extra request fields. Pass `--model` to pin one target instead of routing:
+`turnout byok --model claude-opus`.
 `scripts/copilot-byok.sh` wraps the same environment if you prefer a script.
 
 The variables live only in the shell you exported them into. Open a new terminal, or run
@@ -333,6 +340,11 @@ never writes to Copilot's configuration.
 This is separate from, and does not affect, Turnout's use of `copilot` as a *provider*. That
 path is always on, needs no BYOK, and is how targets like `copilot-grok` and `copilot-gemini`
 work: Turnout runs `copilot -p` under your normal login.
+
+Current NVIDIA + Copilot reality: GitHub's supported-model docs do not expose a native NVIDIA
+model picker in Copilot itself, but Copilot CLI BYOK/local-model mode can still hit NVIDIA
+endpoints by pointing at an OpenAI-compatible provider (like Turnout with an enabled NVIDIA
+HTTP target).
 
 ## The six routers
 
@@ -352,7 +364,7 @@ a learned router can't use.
 
 ## Target catalog
 
-Read straight out of `turnout.toml`. 13 targets are live today; two more ship disabled.
+Read straight out of `turnout.toml`. 13 targets are live today; three more ship disabled.
 
 | ID | Adapter | Model | Quality | Cost | Speed | Notes |
 |---|---|---|---|---|---|---|
@@ -375,6 +387,7 @@ Disabled by default, in `turnout.toml`:
 | ID | Adapter | Model | Needs |
 |---|---|---|---|
 | `grok-4` | xAI (direct) | grok-4 | `XAI_API_KEY`. Copilot already exposes `grok-4.5` without one. |
+| `nvidia-llama-31-70b` | NVIDIA NIM | meta/llama-3.1-70b-instruct | `NVIDIA_API_KEY`, plus a currently available NVIDIA model id. |
 | `ollama-local` | Ollama | llama3.2 | A local `ollama serve` with the model pulled. Fully offline. |
 
 Cost is reported the way each provider reports it and never converted: **Claude CLI reports
