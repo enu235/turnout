@@ -310,6 +310,10 @@ choosing instead of GitHub's own backend, and it turns on purely from environmen
 the moment you launch it. No key is involved when the endpoint is Turnout — GitHub's own
 documentation notes that its authentication is not used in this mode at all.
 
+Copilot has no native NVIDIA model picker. In BYOK/local-provider mode it simply speaks
+OpenAI-compatible requests to Turnout, and Turnout can route those to any enabled target,
+including OpenAI-compatible NVIDIA NIM endpoints.
+
 Point Copilot CLI at Turnout and it uses your router instead of its own hidden `auto`:
 
 ```bash
@@ -332,6 +336,25 @@ catalog. Other built-in profiles (`auto-fast`, `auto-cheap`, `auto-quality`,
 without extra request fields. Pass `--model` to pin one target instead of routing:
 `turnout byok --model claude-opus`.
 `scripts/copilot-byok.sh` wraps the same environment if you prefer a script.
+
+Copilot-first role recipes (opt-in, no default changes):
+
+```bash
+# daily-driver
+eval "$(turnout byok --model copilot-sonnet --export)" && copilot
+
+# orchestrator
+eval "$(turnout byok --model copilot-gpt-sol --export)" && copilot
+
+# subagent
+eval "$(turnout byok --model copilot-gemini --export)" && copilot
+
+# let Turnout choose
+eval "$(turnout byok --model auto --export)" && copilot
+```
+
+For non-pinned role routing, use the OpenAI-compatible API with `constraints.allow_targets` and
+`constraints.priority` (see [docs/routing.md](docs/routing.md#optional-role-oriented-recipes-copilot-first)).
 
 The variables live only in the shell you exported them into. Open a new terminal, or run
 `copilot` without them, and you are back to ordinary Copilot with nothing changed — Turnout
@@ -387,7 +410,7 @@ Disabled by default, in `turnout.toml`:
 | ID | Adapter | Model | Needs |
 |---|---|---|---|
 | `grok-4` | xAI (direct) | grok-4 | `XAI_API_KEY`. Copilot already exposes `grok-4.5` without one. |
-| `nvidia-llama-31-70b` | NVIDIA NIM | meta/llama-3.1-70b-instruct | `NVIDIA_API_KEY`, plus a currently available NVIDIA model id. |
+| `nvidia-llama-31-70b` | NVIDIA NIM | meta/llama-3.1-70b-instruct | `NVIDIA_API_KEY`, plus a currently available NVIDIA model id. Routed via Turnout's OpenAI-compatible HTTP adapter, not Copilot's native model picker. |
 | `ollama-local` | Ollama | llama3.2 | A local `ollama serve` with the model pulled. Fully offline. |
 
 Cost is reported the way each provider reports it and never converted: **Claude CLI reports
