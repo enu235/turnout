@@ -478,6 +478,18 @@ The real API error is wrapped in escaped JSON strings. The adapter unwraps it an
 
 This adapter is a generic escape hatch for any OpenAI-compatible endpoint: xAI/Grok, Ollama, vLLM, LM Studio, OpenRouter, etc. One adapter class parameterized by `base_url` covers them all.
 
+That includes NVIDIA NIM endpoints. In config, register one HTTP provider:
+
+```toml
+[[http_providers]]
+name        = "nvidia"
+base_url    = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+```
+
+Then attach one or more targets to `adapter = "nvidia"`. This is provider-level routing in
+Turnout, independent from Copilot's native model picker.
+
 ### Initialization
 
 ```python

@@ -212,6 +212,11 @@ base_url    = "https://api.x.ai/v1"
 api_key_env = "XAI_API_KEY"
 
 [[http_providers]]
+name        = "nvidia"
+base_url    = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+
+[[http_providers]]
 name     = "ollama"
 base_url = "http://127.0.0.1:11434/v1"
 
@@ -228,6 +233,18 @@ quality_tier = 4
 tags = ["chat", "code"]
 enabled = false
 notes = "Needs XAI_API_KEY. Copilot also exposes grok-4.5 without a key."
+
+[[targets]]
+id = "nvidia-nemotron"
+adapter = "nvidia"
+model = "nvidia/llama-3.1-nemotron-ultra-253b-v1"
+label = "NVIDIA Nemotron (NIM)"
+cost_tier = 3
+speed_tier = 3
+quality_tier = 4
+tags = ["chat", "code", "reasoning"]
+enabled = false
+notes = "Needs NVIDIA_API_KEY. This is direct NIM via OpenAI-compatible HTTP, not Copilot's native model picker."
 
 [[targets]]
 id = "ollama-local"

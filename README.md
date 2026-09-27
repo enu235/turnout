@@ -334,6 +334,11 @@ This is separate from, and does not affect, Turnout's use of `copilot` as a *pro
 path is always on, needs no BYOK, and is how targets like `copilot-grok` and `copilot-gemini`
 work: Turnout runs `copilot -p` under your normal login.
 
+Copilot's built-in model list still does not expose a native NVIDIA picker. If you want NVIDIA
+models, add them as OpenAI-compatible HTTP targets in `turnout.toml` (example below) and keep
+using Copilot CLI through `turnout byok`; Turnout's router can then choose NVIDIA targets like
+any other.
+
 ## The six routers
 
 Only Manual, Heuristic, and Switchyard are meant as an everyday policy. Random, Explore, and
@@ -352,7 +357,7 @@ a learned router can't use.
 
 ## Target catalog
 
-Read straight out of `turnout.toml`. 13 targets are live today; two more ship disabled.
+Read straight out of `turnout.toml`. 13 targets are live today; three more ship disabled.
 
 | ID | Adapter | Model | Quality | Cost | Speed | Notes |
 |---|---|---|---|---|---|---|
@@ -375,6 +380,7 @@ Disabled by default, in `turnout.toml`:
 | ID | Adapter | Model | Needs |
 |---|---|---|---|
 | `grok-4` | xAI (direct) | grok-4 | `XAI_API_KEY`. Copilot already exposes `grok-4.5` without one. |
+| `nvidia-nemotron` | NVIDIA NIM (direct) | nvidia/llama-3.1-nemotron-ultra-253b-v1 | `NVIDIA_API_KEY`. Routed via Turnout's OpenAI-compatible HTTP adapter; not a native Copilot model selection. |
 | `ollama-local` | Ollama | llama3.2 | A local `ollama serve` with the model pulled. Fully offline. |
 
 Cost is reported the way each provider reports it and never converted: **Claude CLI reports
