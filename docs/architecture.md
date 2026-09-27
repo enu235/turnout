@@ -219,11 +219,15 @@ This is Turnout's own interface. It is routing-aware and telemetry-rich:
 ### `/v1/*` — OpenAI Compatible
 
 This is a drop-in replacement for `https://api.openai.com/v1/`:
-- `/v1/models` — GET lists every enabled target plus a virtual `auto` model (invokes the router)
+- `/v1/models` — GET lists every enabled target plus virtual `auto-*` routing profiles
 - `/v1/chat/completions` — POST with OpenAI message format
 
 The OpenAI API:
-- Accepts `model` = a target id (pins that target) or `model` = `auto` (uses the router)
+- Accepts `model` = a target id (pins that target), or one of:
+  - `auto` (route over the full catalog)
+  - `auto-cheap`, `auto-fast`, `auto-quality` (same catalog, priority hint applied)
+  - `auto-copilot`, `auto-copilot-cheap`, `auto-copilot-fast`, `auto-copilot-quality`
+    (same priority options, but restricted to Copilot-backed targets)
 - Uses the `user` field as session affinity (maps to `session_id`)
 - Returns OpenAI-shaped responses
 
@@ -483,6 +487,11 @@ default_router = "heuristic"
 name = "openai"
 base_url = "https://api.openai.com/v1"
 api_key_env = "OPENAI_API_KEY"
+
+[[http_providers]]
+name = "nvidia"
+base_url = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
 
 [[targets]]
 id = "gpt-4o"

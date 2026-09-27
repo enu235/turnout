@@ -212,6 +212,11 @@ base_url    = "https://api.x.ai/v1"
 api_key_env = "XAI_API_KEY"
 
 [[http_providers]]
+name        = "nvidia"
+base_url    = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+
+[[http_providers]]
 name     = "ollama"
 base_url = "http://127.0.0.1:11434/v1"
 
@@ -228,6 +233,18 @@ quality_tier = 4
 tags = ["chat", "code"]
 enabled = false
 notes = "Needs XAI_API_KEY. Copilot also exposes grok-4.5 without a key."
+
+[[targets]]
+id = "nvidia-llama-31-70b"
+adapter = "nvidia"
+model = "meta/llama-3.1-70b-instruct"
+label = "Llama 3.1 70B (NVIDIA NIM)"
+cost_tier = 2
+speed_tier = 2
+quality_tier = 4
+tags = ["chat", "code"]
+enabled = false
+notes = "Needs NVIDIA_API_KEY and a currently available NVIDIA model id."
 
 [[targets]]
 id = "ollama-local"

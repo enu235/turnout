@@ -211,6 +211,10 @@ These four flags drop it to a comparable chat surface:
 
 **Why argv for the prompt?** The `-p` flag has no stdin-prompt mode. Omitting the argument makes the parser treat subsequent flags as additional prompt words. The prompt must go in argv; there is no alternative. This means large prompts are visible in `ps` output—a trade-off inherent to this provider's CLI.
 
+When Turnout itself is acting as Copilot BYOK's provider (`COPILOT_PROVIDER_BASE_URL=...`), this
+adapter strips `COPILOT_PROVIDER_*` and `COPILOT_MODEL` from the subprocess environment before it
+launches `copilot -p`; otherwise provider-side Copilot calls recurse back into Turnout.
+
 ### Event stream
 
 Events are line-delimited JSON. Most are internal bookkeeping (MCP server bring-up, skills catalog, tool-schema plumbing). We key off a small set:
@@ -476,7 +480,8 @@ The real API error is wrapped in escaped JSON strings. The adapter unwraps it an
 **Base class:** Not a CliAdapter subclass (no subprocess to spawn)  
 **Protocol:** OpenAI `/chat/completions` streaming (Server-Sent Events)
 
-This adapter is a generic escape hatch for any OpenAI-compatible endpoint: xAI/Grok, Ollama, vLLM, LM Studio, OpenRouter, etc. One adapter class parameterized by `base_url` covers them all.
+This adapter is a generic escape hatch for any OpenAI-compatible endpoint: xAI/Grok, NVIDIA NIM,
+Ollama, vLLM, LM Studio, OpenRouter, etc. One adapter class parameterized by `base_url` covers them all.
 
 ### Initialization
 
@@ -552,7 +557,7 @@ Always emits a terminal USAGE chunk (on success) or ERROR chunk (on failure). Un
 | `claude_cli` | CLI login | Yes (token-level) | **USD** | `session_id` | The only provider reporting real money. Prompt via stdin. |
 | `copilot_cli` | CLI login | Yes (token-level) | **AI credits** (~0.5–2.5/call) | `sessionId` | Prompt in argv (no stdin mode). Token reduction flags drop ~22k overhead to ~2k. |
 | `codex_cli` | CLI login (ChatGPT subscription) | No (complete messages) | None (subscription-based) | `thread_id` | Tool use disabled. Model name not confirmed back. |
-| `openai_http` | Env var (call-time resolution) | Yes (SSE) | None (depends on provider) | None | Generic OpenAI-compatible endpoint. Works with xAI, Ollama, vLLM, LM Studio, OpenRouter. |
+| `openai_http` | Env var (call-time resolution) | Yes (SSE) | None (depends on provider) | None | Generic OpenAI-compatible endpoint. Works with xAI, NVIDIA NIM, Ollama, vLLM, LM Studio, OpenRouter. |
 
 **Streaming nuance:** Both Claude Code and Copilot emit token-level streaming (you see text appear one token or few-token chunk at a time). Codex emits complete message bodies in one event, so time-to-first-byte is close to total latency.
 

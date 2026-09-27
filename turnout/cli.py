@@ -137,7 +137,10 @@ def cmd_byok(args) -> int:
     for k, v in env.items():
         print(f"  {k}={v}")
     print("\n  $ eval \"$(turnout byok --export)\" && copilot")
-    print("\nUse COPILOT_MODEL=auto to let Turnout's router choose, or name any target id.")
+    print(
+        "\nUse COPILOT_MODEL=auto-copilot (default) to route only inside Copilot-backed targets,"
+        "\nCOPILOT_MODEL=auto for the whole catalog, or name any concrete target id."
+    )
     return 0
 
 
@@ -203,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     ex.set_defaults(func=cmd_export)
 
     by = sub.add_parser("byok", help="print env to point GitHub Copilot CLI at Turnout")
-    by.add_argument("--model", default="auto")
+    by.add_argument("--model", default="auto-copilot")
     by.add_argument("--export", action="store_true", help="emit shell export lines")
     by.set_defaults(func=cmd_byok)
 

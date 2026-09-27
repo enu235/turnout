@@ -20,7 +20,7 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +46,76 @@ from .registry import build_adapters, build_routers
 log = logging.getLogger("turnout")
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+
+@dataclass(frozen=True)
+class AutoProfile:
+    """Virtual `/v1/chat/completions` model that maps to routing constraints."""
+
+    priority: Priority | None = None
+    adapter: str | None = None
+
+
+AUTO_PROFILES: dict[str, AutoProfile] = {
+    "auto": AutoProfile(),
+    "auto-cheap": AutoProfile(priority=Priority.CHEAP),
+    "auto-fast": AutoProfile(priority=Priority.FAST),
+    "auto-quality": AutoProfile(priority=Priority.QUALITY),
+    # Copilot BYOK ergonomics: keep routing in the Copilot-backed pool unless
+    # the user explicitly asks for the whole catalog.
+    "auto-copilot": AutoProfile(adapter="copilot_cli"),
+    "auto-copilot-cheap": AutoProfile(priority=Priority.CHEAP, adapter="copilot_cli"),
+    "auto-copilot-fast": AutoProfile(priority=Priority.FAST, adapter="copilot_cli"),
+    "auto-copilot-quality": AutoProfile(priority=Priority.QUALITY, adapter="copilot_cli"),
+}
+
+
+def available_auto_profiles(h: Turnout) -> list[str]:
+    """List profile IDs that make sense for this configured catalog."""
+    enabled_adapters = {t.adapter for t in h.catalog.targets if t.enabled}
+    return [
+        name for name, profile in AUTO_PROFILES.items()
+        if profile.adapter is None or profile.adapter in enabled_adapters
+    ]
+
+
+def apply_auto_profile(h: Turnout, model: str, constraints: Constraints) -> bool:
+    """Apply a virtual model profile onto constraints.
+
+    Returns True when `model` is a known auto profile, False when it is a
+    concrete target id that should be pinned instead.
+    """
+    profile = AUTO_PROFILES.get(model)
+    if profile is None:
+        return False
+
+    if profile.priority and constraints.priority is Priority.BALANCED:
+        constraints.priority = profile.priority
+
+    if profile.adapter is None:
+        return True
+
+    pool = [
+        t.id for t in h.catalog.targets
+        if t.enabled and t.available is not False and t.adapter == profile.adapter
+    ]
+    if not pool:
+        raise HTTPException(
+            400,
+            f"model '{model}' requested, but no reachable '{profile.adapter}' targets are configured",
+        )
+
+    if constraints.allow_targets is None:
+        constraints.allow_targets = pool
+    else:
+        constraints.allow_targets = [tid for tid in constraints.allow_targets if tid in pool]
+        if not constraints.allow_targets:
+            raise HTTPException(
+                400,
+                f"model '{model}' requested, but request allow_targets excludes all "
+                f"{profile.adapter} targets",
+            )
+    return True
 
 
 class Turnout:
@@ -468,10 +538,12 @@ def create_app(cfg: TurnoutConfig) -> FastAPI:
 
     @app.get("/v1/models")
     async def models() -> dict[str, Any]:
-        """Every target is a model, plus a virtual `auto` that invokes the router."""
+        """Every target is a model, plus virtual `auto-*` routing profiles."""
         h = get_turnout()
-        entries = [{"id": "auto", "object": "model", "created": int(time.time()),
-                    "owned_by": "turnout"}]
+        entries = [
+            {"id": m, "object": "model", "created": int(time.time()), "owned_by": "turnout"}
+            for m in available_auto_profiles(h)
+        ]
         entries += [
             {"id": t.id, "object": "model", "created": int(time.time()),
              "owned_by": t.adapter}
@@ -481,7 +553,7 @@ def create_app(cfg: TurnoutConfig) -> FastAPI:
 
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request, body: dict[str, Any] = Body(...)):
-        """OpenAI-compatible. `model` may be a target id, or `auto` to route.
+        """OpenAI-compatible. `model` may be a target id, or an `auto-*` profile.
 
         Session affinity comes from the `user` field, which is the only stable
         per-conversation identifier the OpenAI schema offers.
@@ -493,7 +565,7 @@ def create_app(cfg: TurnoutConfig) -> FastAPI:
             raise HTTPException(400, "messages is required")
 
         constraints = build_constraints(body)
-        if model != "auto":
+        if not apply_auto_profile(h, model, constraints):
             if h.catalog.get(model) is None:
                 raise HTTPException(404, f"unknown model '{model}'")
             constraints.pin_target = model

@@ -36,6 +36,21 @@ class CopilotCliAdapter(CliAdapter):
     binary = "copilot"
     probe_args = ["--version"]
 
+    def __init__(self, workdir: str | None = None):
+        # When Turnout itself is serving Copilot BYOK traffic,
+        # COPILOT_PROVIDER_* points back at Turnout. If that env leaks into this
+        # provider subprocess, `copilot -p` recursively calls Turnout instead of
+        # GitHub's backend. Strip the BYOK selector vars for provider-side runs.
+        super().__init__(
+            workdir=workdir,
+            unset_env={
+                "COPILOT_PROVIDER_BASE_URL",
+                "COPILOT_PROVIDER_TYPE",
+                "COPILOT_PROVIDER_WIRE_API",
+                "COPILOT_MODEL",
+            },
+        )
+
     def build_argv(self, req: ExecRequest) -> list[str]:
         argv = [
             self.binary,
